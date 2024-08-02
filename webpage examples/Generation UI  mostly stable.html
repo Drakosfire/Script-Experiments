@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="./dependencies/all.css" rel="stylesheet" />
+    <link href="./dependencies/css.css?family=Open+Sans:400,300,600,700" rel="stylesheet" type="text/css" />
+    <link href='./dependencies/bundle.css' rel='stylesheet' />
+    <link href="./dependencies/style.css" rel='stylesheet' />
+    <link href="./dependencies/5ePHBstyle.css" rel='stylesheet' />
+    <title>DnD Stat Block</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/htmx.org@1.7.0/dist/htmx.min.js"></script>
+</head>
+<style>
+    :root {
+  --HB_Color_Background: #EEE5CE;
+  --HB_Color_Accent: #E0E5C1;
+  --HB_Color_HeaderUnderline: #C0AD6A;
+  --HB_Color_HorizontalRule: #9C2B1B;
+  --HB_Color_HeaderText: #58180D;
+  --HB_Color_MonsterStatBackground: #F2E5B5;
+  --HB_Color_CaptionText: #766649;
+  --HB_Color_WatercolorStain: #BBAD82;
+  --HB_Color_Footnotes: #C9AD6A;
+    }
+    input[type="text"], textarea {
+    width: auto;
+    padding: 8px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #f9f9f9;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+.grid-container {
+            display: grid;
+            grid-template-columns: 1fr 3fr; /* Two columns with the second column being three times as wide */
+            grid-gap: 20px;
+            padding: 20px;
+            height: 100vh;
+        }
+.block-container {
+    position: fixed; /* Lock the block-container in place */
+    top: 20px; /* Distance from the top of the viewport */
+    left: 20px; /* Distance from the left of the viewport */
+    width: 350px; /* Set the width of the block-container */
+    height: calc(100vh - 40px); /* Full viewport height minus top and bottom padding */
+    overflow-y: auto; /* Enable vertical scrolling if needed */
+    border-right: 1px solid #ccc; /* Right border for visual separation */
+    padding-right: 20px; /* Padding inside the block-container */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    background-color: #f9f9f9; /* Background color */
+    z-index: 1000; /* Ensure it is on top of other elements */
+}
+
+.block-container .page {
+    column-count: 1;
+    padding: 0;
+    width: 325px;
+    height: auto; /* Allow the page to expand to fit content */
+    overflow: visible; /* Allow content to overflow if necessary */
+    page-break-before: auto;
+    page-break-after: auto;
+    
+}
+.page-container {
+    margin-left: 350px; /* Offset the page content by the width of block-container plus margin */
+    width: 900px;
+    padding: 20px;
+    overflow: auto; /* Enable scrolling if needed */
+    height: 100vh; /* Full viewport height */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+.block-item {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: transparent;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+.block-item:hover {
+    transform: translateY(-5px);
+    background-color: rgba(255, 255, 255, 0.5); /* Slightly visible background on hover */
+}
+
+.page {
+    column-count: 2;
+    column-gap: .9cm;
+    column-width: 8cm;
+    -webkit-column-count: 2;
+    -moz-column-count: 2;
+    -webkit-column-width: 8cm;
+    -moz-column-width: 8cm;
+    -webkit-column-gap: .9cm;
+    -moz-column-gap: .9cm;
+    position: relative;
+    z-index: 15;
+    box-sizing: border-box;
+    width: 215.9mm;
+    height: 279.4mm; /* Original height for print layout */
+    padding: 1.4cm 1.9cm 1.7cm;
+    overflow: hidden;
+    font-family: "BookInsanityRemake";
+    font-size: .34cm;
+    counter-increment: phb-page-numbers;
+    background-color: var(--HB_Color_Background);
+    background-image: url('./themes/assets/parchmentBackground.jpg');
+    text-rendering: optimizeLegibility;
+    page-break-before: always;
+    page-break-after: always;
+    contain: size;
+}
+
+.page .monster hr:last-of-type + * {
+  margin-top: .1cm;
+}
+.page * + h4 {
+  margin-top: .1cm;
+}
+.page h4 + * {
+  margin-top: .1cm;
+}
+.page dl + * {
+  margin-top: .1cm;
+}
+.page p + * {
+    margin-top: .1cm;
+}
+.columnWrapper {
+    column-gap: inherit;
+    max-height: 100%;
+    column-span: all;
+    columns: inherit;
+    height: 100%; /* Ensure it takes full height of the parent */
+    box-sizing: border-box; /* Ensures padding and border are included in the element's total width and height */
+}
+input[type="text"]:focus, textarea:focus {
+    background-color: #e9e9e9;
+    border-color: #aaa;
+    outline: none;
+}
+
+/* Specific styles for different textboxes */
+
+.user-description-textarea {
+    width: 400px;
+    height: 40px; /* Adjust as needed for 3 lines */
+    resize: vertical;
+    background: none;
+    font-family: "ScalySansRemake";
+    font-weight: 800;
+    
+}
+/* Focus styles for description textbox */
+.user-description-textarea:focus {
+    background-color: #e9e9e9;
+    border-color: #aaa;
+    outline: none;
+}
+
+.heading-textarea {
+    width: 100%;
+    font-size: .458cm; /* Matches the font size of an h4 heading */
+    line-height: .7em;
+    font-weight: 800;
+    border: none;
+    background: none;
+    margin: 0;
+    padding: 0;
+    resize: none; /* Prevents the textarea from being resizable */
+    overflow: hidden; /* Prevents scrollbars */
+    outline: none; /* Removes the focus outline */
+    font-family: "MrEavesRemake"; /* Ensures font family is inherited */
+    color: var(--HB_Color_HeaderText)
+}
+.properties-textarea {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: .7em;
+    margin-bottom: 0;
+    font-style: italic;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being resizable */
+
+}
+
+.description-textarea {
+    width: 100%;
+    height: 125px; 
+    font-size: .318cm;
+    font-weight: 400;
+    line-height: .9em;
+    margin-bottom: 0;
+    font-style: italic;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansSmallCapsRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being manually resizable */
+    overflow: hidden; /* Hide scrollbars */
+}
+
+.red-integer-stat-textarea {
+    width: 20px;
+    height:13px;
+    font-size: .318cm;
+    font-weight: 400;
+    line-height: 1.2em;
+    margin-bottom: 0;
+    font-style: italic;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansSmallCapsRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being manually resizable */
+    overflow: hidden; /* Hide scrollbars */
+    color: var(--HB_Color_HeaderText);
+    white-space: pre-line;
+}
+
+.integer-stat-textarea {
+    width: 20px;
+    height:13px;
+    font-size: .318cm;
+    font-weight: 400;
+    line-height: 1.2em;
+    margin-bottom: 0;
+    font-style: italic;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being manually resizable */
+    overflow: hidden; /* Hide scrollbars */
+    white-space: pre-line;
+}
+
+.string-stat-textarea {
+    width: 200px;
+    height:13px;
+    font-size: .318cm;
+    font-weight: 400;
+    line-height: 1.2em;
+    margin-bottom: 0;
+    font-style: italic;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being manually resizable */
+    overflow: hidden; /* Hide scrollbars */
+    white-space: pre-wrap;
+}
+
+.string-action-name-textarea {
+    width: 100%;
+    height:13px;
+    font-size: .318cm;
+    font-style: italic;
+    font-weight: bold;
+    line-height: 1.2em;
+    margin-bottom: 0;
+    font-style: italic;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being manually resizable */
+    overflow: hidden; /* Hide scrollbars */
+    
+}
+
+.string-action-description-textarea {
+    width: 100%;
+    height:30px;
+    font-size: .318cm;
+    font-weight: 400;
+    line-height: 1.2em;
+    margin-bottom: 0;
+    box-sizing: border-box;
+    border: 0;
+    font-family: "ScalySansRemake";
+    vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    overflow-wrap: break-word;
+    text-rendering: optimizeLegibility;
+    background: none;
+    resize: none; /* Prevents the textarea from being manually resizable */
+    overflow: hidden; /* Hide scrollbars */
+    
+
+    
+}
+
+.block.monster.frame.wide {
+    column-count: inherit;
+    min-height: 100px; /* Set an appropriate minimum height */
+    height: 859px; /* Allow height to expand automatically */
+    column-fill: auto;
+    overflow: hidden; /* Ensure content overflow is visible */
+    width: 100%; /* Ensure it takes the full width of the container */
+    
+}
+.name-textbox {
+    width: 50px;
+    font-size: 1.5em;
+    padding: 10px;
+}
+
+.stat-textbox {
+    width: 50px;
+    text-align: center;
+    font-size: 1em;
+    padding: 5px;
+}
+
+.trash-area {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 100px;
+    height: 100px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    cursor: pointer;
+    background-image: url('./closed-mimic-trashcan.png'); /* Adjust the path to your image file */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.trash-area:hover {
+            background-image: url('./mimic_trashcan.png');
+        }
+.trash-area.over {    
+    color: white;
+    background-image: url('./mimic_trashcan.png'); /* Example image change */
+}
+
+
+
+</style>
+<body>
+    <div class="grid-container">
+        <div class="block-container" id="blockContainer">
+            <!-- Blocks will be wrapped in a page div and loaded here -->
+        </div>
+        <div class="page-container" id="pageContainer">
+            <div class="brewRenderer">
+                <h1>Describe your creature</h1>
+                <textarea id="user-description" class="user-description-textarea"
+                    hx-post="/update-stats" hx-trigger="change"
+                    hx-target="#user-description" hx-swap="outerHTML"
+                    title="As much or as little description as you want to provide. You can provide specific stats, such as Challenge Rating 6, or STR 20">A tiny little basic fairy that has somehow become a CR 6 big bad</textarea>
+                <button id="resetButton">Reset</button>
+                <div class="pages">
+                    <div class="page phb" id="p1" key="0">
+                        <div class="columnWrapper">
+                            <div class="block monster frame wide">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="trash-area" id="trashArea"></div>
+    <script>
+        // Waits for DOM content to be fully loaded and assigns critical elements to variables.
+        document.addEventListener("DOMContentLoaded", function() {
+            const blockContainer = document.getElementById('blockContainer');
+            const pageContainer = document.getElementById('pageContainer');
+            const trashArea = document.getElementById('trashArea');
+            const resetButton = document.getElementById('resetButton');
+            let currentPage = pageContainer.querySelector('.block.monster.frame.wide');
+            const MAX_PAGE_HEIGHT = 750; // Set your max page height here
+
+            if (!blockContainer || !pageContainer || !trashArea || !currentPage) {
+                console.error('Required elements are null');
+                return;
+            }
+
+            const initialPositions = [];
+
+            function storeInitialPositions() {
+                const blocks = blockContainer.querySelectorAll('.block-item');
+                blocks.forEach((block, index) => {
+                    const blockId = block.getAttribute('data-block-id');
+                    if (!blockId) {
+                        console.error(`Block at index ${index} is missing data-block-id`);
+                    }
+                    initialPositions.push({
+                        id: blockId,
+                        index: index
+                    });
+                });
+            }
+
+            storeInitialPositions();
+
+            function adjustTextareaHeight(el) {
+                el.style.height = 'auto';
+                el.style.height = (el.scrollHeight) + 'px';
+            }
+
+            const classes = [
+                'description-textarea',
+                'user-description-textarea',
+                'heading-textarea',
+                'properties-textarea',
+                'string-stat-textarea',
+                'string-action-description-textarea'
+            ];
+
+            classes.forEach(className => {
+                const textareas = document.querySelectorAll(`.${className}`);
+                textareas.forEach(textarea => {
+                    adjustTextareaHeight(textarea);
+                    textarea.addEventListener('input', function() {
+                        adjustTextareaHeight(textarea);
+                    });
+                });
+            });
+
+            async function extractBlocks() {
+                try {
+                    if (blockContainer.children.length > 0) {
+                        console.log('Blocks already loaded, skipping fetch');
+                        return;
+                    }
+                    const response = await fetch('The Mirage Emporium.html');
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok ' + response.statusText);
+                    }
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    const blocks = doc.querySelectorAll('[class^="Block_"]');
+
+                    const pageWrapper = document.createElement('div');
+                    pageWrapper.classList.add('page');
+                    blocks.forEach((block, index) => {
+                        const blockContent = block.innerHTML;
+                        const blockItem = document.createElement('div');
+                        blockItem.classList.add('block-item');
+                        blockItem.innerHTML = blockContent;
+                        const blockId = `block-${index}`;
+                        blockItem.setAttribute('data-block-id', blockId);
+                        blockItem.setAttribute('draggable', true);
+                        blockItem.addEventListener('dragstart', handleDragStart);
+                        blockItem.addEventListener('dragend', handleDragEnd);
+                        pageWrapper.appendChild(blockItem);
+                        console.log(`Loaded block with ID: ${blockId}`);
+                    });
+                    blockContainer.appendChild(pageWrapper);
+                    storeInitialPositions();
+                } catch (error) {
+                    console.error('Error fetching and parsing template.html:', error);
+                }
+            }
+
+            function handleDragStart(e) {
+                const target = e.target.closest('.block-item, .block-content');
+                if (!target) {
+                    console.error('Drag started for an element without a valid target');
+                    return;
+                }
+                const blockId = target.getAttribute('data-block-id');
+                if (!blockId) {
+                    console.error('Drag started for an element without a data-block-id');
+                    return;
+                }
+                const innerHTML = target.innerHTML;
+                e.dataTransfer.setData('text/plain', innerHTML);
+                e.dataTransfer.setData('block-id', blockId);
+                e.dataTransfer.effectAllowed = 'move';
+                target.style.opacity = '0.4';
+                console.log(`Drag started for block ID: ${blockId}`);
+            }
+
+            function handleDragEnd(e) {
+                const target = e.target.closest('.block-item');
+                if (target) {
+                    target.style.opacity = '1';
+                    const blockId = target.getAttribute('data-block-id');
+                    console.log(`Drag ended for block ID: ${blockId}`);
+                }
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                console.log('Drag over event');
+
+                const target = e.target.closest('.block-item, .block-content');
+                if (target) {
+                    const bounding = target.getBoundingClientRect();
+                    const offset = bounding.y + bounding.height / 2;
+                    if (e.clientY - offset > 0) {
+                        target.style['border-bottom'] = '2px solid blue';
+                        target.style['border-top'] = '';
+                    } else {
+                        target.style['border-top'] = '2px solid blue';
+                        target.style['border-bottom'] = '';
+                    }
+                }
+            }
+            // Function to get the height of a column by index
+            function getColumnHeight(pageElement, columnIndex) {
+                const blocks = pageElement.querySelectorAll('.block-content');
+                let totalHeight = 0;
+                blocks.forEach((block, index) => {
+                    // Assign even index blocks to column 1 and odd index blocks to column 2
+                    if (index % 2 === columnIndex) {
+                        totalHeight += block.offsetHeight;
+                    }
+                });
+                return totalHeight;
+}
+
+            function handleDrop(e) {
+                e.preventDefault();
+                const innerHTML = e.dataTransfer.getData('text/plain');
+                const blockId = e.dataTransfer.getData('block-id');
+                console.log(`Drop event for block ID: ${blockId}`);
+
+                if (innerHTML && blockId) {
+                    const newBlock = document.createElement('div');
+                    newBlock.classList.add('block-content');
+                    newBlock.innerHTML = innerHTML;
+                    newBlock.setAttribute('data-block-id', blockId);
+                    newBlock.setAttribute('draggable', true);
+                    newBlock.addEventListener('dragstart', handleDragStart);
+                    newBlock.addEventListener('dragend', handleDragEnd);
+
+                    // Append new block temporarily
+                    currentPage.appendChild(newBlock);
+                    const target = e.target.closest('.block-item, .block-content');
+                    if (target) {
+                        const bounding = target.getBoundingClientRect();
+                        const offset = bounding.y + bounding.height / 2;
+
+                        if (e.clientY - offset > 0) {
+                            target.style['border-bottom'] = '';
+                            target.style['margin-bottom'] = '';
+                            target.parentNode.insertBefore(newBlock, target.nextSibling);
+                        } else {
+                            target.style['border-top'] = '';
+                            target.style['margin-top'] = '';
+                            target.parentNode.insertBefore(newBlock, target);
+                        }
+                    } else {
+                        currentPage.appendChild(newBlock);
+                    }
+
+                    // Use setTimeout to wait for the layout to adjust
+                    
+                        const monsterFrame = currentPage.closest('.page.phb').querySelector('.block.monster.frame.wide');
+                        console.log(`Current page content height: ${monsterFrame.offsetHeight}px, Max allowed height: ${MAX_PAGE_HEIGHT}px`);
+
+                        const column1Height = getColumnHeight(currentPage, 0);
+                        const column2Height = getColumnHeight(currentPage, 1);
+                        console.log(`Column 1 height: ${column1Height}px, Column 2 height: ${column2Height}px`);
+
+                        if (column2Height > MAX_PAGE_HEIGHT) {
+                            // Remove the block from currentPage if it exceeds the height limit
+                            currentPage.removeChild(newBlock);
+                            createNewPage();
+                            currentPage.appendChild(newBlock);
+                        } else if (column1Height > MAX_PAGE_HEIGHT) {
+                            // If column 1 exceeds the height, ensure the block is moved to column 2
+                            currentPage.removeChild(newBlock);
+                            createNewPage();
+                            currentPage.appendChild(newBlock);
+                        }
+
+                        const existingBlock = currentPage.querySelector(`[data-block-id="${blockId}"]`);
+                        if (existingBlock && existingBlock !== newBlock) {
+                            existingBlock.remove();
+                            console.log(`Removed existing block with ID: ${blockId} from currentPage`);
+                        }
+
+                        const originalBlockItem = blockContainer.querySelector(`[data-block-id="${blockId}"]`);
+                        if (originalBlockItem) {
+                            originalBlockItem.remove();
+                            console.log(`Removed original block with ID: ${blockId} from block-container`);
+                        }
+
+                        const allBlocks = document.querySelectorAll('.block-content, .block-item');
+                        allBlocks.forEach(block => {
+                            block.style['border-bottom'] = '';
+                            block.style['border-top'] = '';
+                        });
+
+                        console.log(`Moved existing block with ID: ${blockId}`);
+                    
+                } else {
+                    console.log('No data transferred');
+                }
+            }
+
+
+
+            // Function to create new page
+            function createNewPage() {
+                const newPage = document.createElement('div');
+                newPage.classList.add('page', 'phb');
+                newPage.id = `p${document.querySelectorAll('.page').length + 1}`;
+                newPage.setAttribute('key', `${document.querySelectorAll('.page').length}`);
+
+                const columnWrapper = document.createElement('div');
+                columnWrapper.classList.add('columnWrapper');
+
+                const newMonsterFrame = document.createElement('div');
+                newMonsterFrame.classList.add('block', 'monster', 'frame', 'wide');
+
+                columnWrapper.appendChild(newMonsterFrame);
+                newPage.appendChild(columnWrapper);
+                pageContainer.appendChild(newPage);
+
+                currentPage = newMonsterFrame;
+                console.log(`Created new page with ID: ${newPage.id}`);
+
+                // Add event listeners to the new currentPage
+                currentPage.addEventListener('dragover', handleDragOver);
+                currentPage.addEventListener('drop', handleDrop);
+            }
+
+            function handleTrashDrop(e) {
+                e.preventDefault();
+                const innerHTML = e.dataTransfer.getData('text/plain');
+                const blockId = e.dataTransfer.getData('block-id');
+                console.log('Trash Drop event:', e);
+                console.log('Dragged block ID to trash:', blockId);
+
+                if (innerHTML && blockId) {
+                    // Find the dragged element and remove it from the DOM
+                    const draggedElement = document.querySelector(`[data-block-id="${blockId}"].block-content`);
+                    if (draggedElement) {
+                        draggedElement.parentElement.removeChild(draggedElement);
+                    }
+
+                    // Create a new block-item to be placed back in the block-container
+                    const newBlock = document.createElement('div');
+                    newBlock.classList.add('block-item');
+                    newBlock.setAttribute('data-block-id', blockId);
+                    newBlock.innerHTML = innerHTML;
+                    newBlock.setAttribute('draggable', true);
+                    newBlock.addEventListener('dragstart', handleDragStart);
+                    newBlock.addEventListener('dragend', handleDragEnd);
+
+                    // Ensure the block is appended to the page wrapper inside blockContainer
+                    let pageWrapper = blockContainer.querySelector('.page');
+                    if (!pageWrapper) {
+                        pageWrapper = document.createElement('div');
+                        pageWrapper.classList.add('page');
+                        blockContainer.appendChild(pageWrapper);
+                    }
+
+                    // Find the original position to insert the new block
+                    const originalPosition = initialPositions.find(pos => pos.id === blockId);
+                    if (originalPosition) {
+                        const blocks = pageWrapper.querySelectorAll('.block-item');
+                        if (originalPosition.index < blocks.length) {
+                            pageWrapper.insertBefore(newBlock, blocks[originalPosition.index]);
+                            console.log(`Moved block back to original position ${originalPosition.index} in block-container`);
+                        } else {
+                            pageWrapper.appendChild(newBlock);
+                            console.log('Appended block to the end of block-container');
+                        }
+                    } else {
+                        pageWrapper.appendChild(newBlock);
+                        console.log('Original position not found, appended block to the end of block-container');
+                    }
+
+                    console.log(`Restored block with ID: ${blockId}`);
+                } else {
+                    console.log('No data transferred');
+                }
+            }
+
+            function handleTrashOver(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                trashArea.classList.add('over');
+                console.log('Trash over event');
+            }
+
+            function handleTrashLeave(e) {
+                trashArea.classList.remove('over');
+                console.log('Trash leave event');
+            }
+
+            currentPage.addEventListener('dragover', handleDragOver);
+            currentPage.addEventListener('drop', handleDrop);
+
+            trashArea.addEventListener('dragover', handleTrashOver);
+            trashArea.addEventListener('dragleave', handleTrashLeave);
+            trashArea.addEventListener('drop', handleTrashDrop);
+
+            function handleReset() {
+                const blocksOnPage = currentPage.querySelectorAll('[data-block-id]');
+                blocksOnPage.forEach(block => {
+                    const blockId = block.getAttribute('data-block-id');
+                    block.remove();
+                    console.log(`Removed block with ID: ${blockId} from currentPage`);
+
+                    // Restore the block to the blockContainer
+                    const newBlock = document.createElement('div');
+                    newBlock.classList.add('block-item');
+                    newBlock.setAttribute('data-block-id', blockId);
+                    newBlock.innerHTML = block.innerHTML;
+                    newBlock.setAttribute('draggable', true);
+                    newBlock.addEventListener('dragstart', handleDragStart);
+                    newBlock.addEventListener('dragend', handleDragEnd);
+
+                    // Ensure the block is appended to the page wrapper inside blockContainer
+                    let pageWrapper = blockContainer.querySelector('.page');
+                    if (!pageWrapper) {
+                        pageWrapper = document.createElement('div');
+                        pageWrapper.classList.add('page');
+                        blockContainer.appendChild(pageWrapper);
+                    }
+
+                    // Find the original position to insert the new block
+                    const originalPosition = initialPositions.find(pos => pos.id === blockId);
+                    if (originalPosition) {
+                        const blocks = pageWrapper.querySelectorAll('.block-item');
+                        if (originalPosition.index < blocks.length) {
+                            pageWrapper.insertBefore(newBlock, blocks[originalPosition.index]);
+                            console.log(`Moved block back to original position ${originalPosition.index} in block-container`);
+                        } else {
+                            pageWrapper.appendChild(newBlock);
+                            console.log('Appended block to the end of block-container');
+                        }
+                    } else {
+                        pageWrapper.appendChild(newBlock);
+                        console.log('Original position not found, appended block to the end of block-container');
+                    }
+                });
+            }
+            pageContainer.addEventListener('dragover', handleDragOver);
+            pageContainer.addEventListener('drop', handleDrop);
+            
+            trashArea.addEventListener('dragover', handleTrashOver);
+            trashArea.addEventListener('dragleave', handleTrashLeave);
+            trashArea.addEventListener('drop', handleTrashDrop);
+            resetButton.addEventListener('click', handleReset);
+
+            extractBlocks();
+        });
+    </script>
+</body>
+</html>

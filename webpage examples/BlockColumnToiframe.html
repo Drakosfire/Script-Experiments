@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Improved Grid Layout with Blocks and Buttons</title>
+    <style>
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 3fr; /* Two columns with the second column being three times as wide */
+            grid-gap: 20px;
+            padding: 20px;
+            height: 100vh;
+        }
+        .block-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .block-item {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        .block-item:hover {
+            transform: translateY(-5px);
+        }
+        .block-item button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .block-item button:hover {
+            background-color: #0056b3;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #iframeContainer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            grid-column: 2; /* Ensure iframe takes up the second column */
+        }
+        button.clear-button {
+            padding: 10px;
+            margin: 20px;
+            border: none;
+            border-radius: 4px;
+            background-color: #dc3545;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button.clear-button:hover {
+            background-color: #c82333;
+        }
+        .page, .block-content {
+            column-count: 2;
+            column-fill: auto;
+            column-gap: .9cm;
+            column-width: 8cm;
+            position: relative;
+            z-index: 15;
+            box-sizing: border-box;
+            width: 100 mm;
+            height: auto;
+            padding: 1.4cm 1.9cm 1.7cm;
+            overflow: hidden;
+            font-family: "BookInsanityRemake";
+            font-size: .34cm;
+            counter-increment: phb-page-numbers;
+            background-color: var(--HB_Color_Background);
+            background-image: url('./dependencies/themes/assets/parchmentBackground.jpg');
+            text-rendering: optimizeLegibility;
+        }
+        .block-content h1, .block-content h2, .block-content h3, .block-content h4 {
+            font-family: "MrEavesRemake";
+            font-weight: 800;
+            color: var(--HB_Color_HeaderText);
+        }
+        .block-content h1 {
+            font-size: 2em;
+            margin-bottom: .18cm;
+            column-span: all;
+            line-height: 1em;
+        }
+        .block-content h1, .block-content h2, .block-content h3, .block-content h4, .block-content h5, .block-content h6 {
+            font-weight: bold;
+            line-height: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-container">
+        <div class="block-container" id="blockContainer">
+            <!-- Blocks will be loaded here -->
+        </div>
+        <div id="iframeContainer">
+            <iframe id="mainIframe"></iframe>
+        </div>
+    </div>
+    <button class="clear-button" onclick="clearIframe()">Clear Iframe</button>
+
+    <script>
+        const stylesheetLinks = [
+            './dependencies/all.css',
+            './dependencies/css.css?family=Open+Sans:400,300,600,700',
+            './dependencies/bundle.css',
+            './dependencies/style.css',
+            './dependencies/5ePHBstyle.css'
+        ];
+
+        // Function to clear the iframe content
+        function clearIframe() {
+            const iframe = document.querySelector('#mainIframe');
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            iframeDoc.body.innerHTML = '<div class="page"></div>'; // Reset to a single empty page
+            addStylesheetsToDocument(iframeDoc, stylesheetLinks);
+        }
+
+        // Function to send a block to the iframe
+        function sendBlockToIframe(blockContent) {
+            const iframe = document.querySelector('#mainIframe');
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+            // Find the .page div
+            let columnDiv = iframeDoc.querySelector('.columnWrapper');
+
+            // Append the new block content
+            const newBlock = iframeDoc.createElement('div');
+            newBlock.classList.add('block-content');
+            newBlock.innerHTML = blockContent;
+            columnDiv.appendChild(newBlock);
+        }
+
+        // Function to add stylesheets to a document
+        function addStylesheetsToDocument(doc, links) {
+            links.forEach(link => {
+                const linkElement = doc.createElement('link');
+                linkElement.rel = 'stylesheet';
+                linkElement.href = link;
+                doc.head.appendChild(linkElement);
+            });
+        }
+
+        async function loadBlocks() {
+            try {
+                const url = 'The Mirage Emporium.html?' + new Date().getTime();
+                const response = await fetch(url);
+                const text = await response.text();
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+
+                const blocks = Array.from(doc.querySelectorAll('[id^="Block_"]'))
+                    .filter(element => /^\d+$/.test(element.id.split('_')[1]))
+                    .map(element => ({
+                        id: element.id,
+                        content: element.outerHTML
+                    }));
+
+                const blockContainer = document.getElementById('blockContainer');
+
+                const iframe = document.getElementById('mainIframe');
+                const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                iframeDoc.open();
+                iframeDoc.write(`<!DOCTYPE html>
+                <html lang="en">
+                <head></head>
+                <body><div class="page"><div class="columnWrapper"></div></div></body>
+                </html>`);
+                iframeDoc.close();
+
+                addStylesheetsToDocument(iframeDoc, stylesheetLinks);
+
+                blocks.forEach(block => {
+                    const blockDiv = document.createElement('div');
+                    blockDiv.classList.add('block-item');
+                    blockDiv.innerHTML = `<div class="block-content">${block.content}</div>`;
+
+                    const button = document.createElement('button');
+                    button.innerText = `Send ${block.id} to Iframe`;
+                    button.onclick = () => sendBlockToIframe(`<div class="block-content">${block.content}</div>`);
+
+                    blockDiv.appendChild(button);
+                    blockContainer.appendChild(blockDiv);
+                });
+
+            } catch (error) {
+                console.error('Error loading sections:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadBlocks);
+    </script>
+</body>
+</html>

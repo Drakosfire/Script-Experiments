@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML String Manipulation</title>
+</head>
+<body>
+
+<!-- Container where blocks will be inserted -->
+<div id="blockContainer"></div>
+
+<script>
+    // Function to insert HTML blocks
+    function insertHtmlBlocks(blocks) {
+        const blockContainer = document.getElementById('blockContainer');
+        console.log('List of blocks:', blocks);
+        
+        blocks.forEach(blockHtml => {
+            console.log('Original blockHtml:', blockHtml);
+            
+            // Use a template element to parse the HTML string
+            const template = document.createElement('template');
+            template.innerHTML = blockHtml.trim(); // Trim whitespace around the HTML
+            
+            const content = template.content;
+            const block = content.firstElementChild;
+            
+            console.log('First element child of template content:', block);
+            
+            if (block) {
+                blockContainer.appendChild(block); // Append the parsed block to the container
+                console.log('Appended block:', block);
+                
+                // Access the <textarea> element within the block
+                const textarea = block.querySelector('textarea');
+                if (textarea) {
+                    console.log('Accessed textarea:', textarea);
+                    // Manipulate the <textarea> element
+                    textarea.value = "New value for the textarea"; // Example action
+                } else {
+                    console.error('No <textarea> element found within the block');
+                }
+            } else {
+                console.error('No block element found in the parsed content');
+            }
+        });
+        console.log('Final state of blockContainer:', blockContainer.innerHTML);
+    }
+
+    // Example usage with an array of HTML strings
+    const blocks = [
+        '<div class="blockTitle"><textarea class="heading-textarea" id="user-monster-name" hx-post="/update-stats" hx-trigger="change" hx-target="#user-monster-name" hx-swap="outerHTML" title="The Glittering Grotto"></textarea></div>',
+        // Add more HTML strings as needed
+    ];
+    
+    // Call the function to insert blocks
+    insertHtmlBlocks(blocks);
+</script>
+
+</body>
+</html>

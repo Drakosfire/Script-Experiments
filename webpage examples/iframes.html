@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="./dependencies/all.css" rel="stylesheet" />
+    <link href="./dependencies/css.css?family=Open+Sans:400,300,600,700" rel="stylesheet" type="text/css" />
+    <link href='./dependencies/bundle.css' rel='stylesheet' />
+    <link href="./dependencies/style.css" rel='stylesheet' />
+    <link href="./dependencies/5ePHBstyle.css" rel='stylesheet' />
+    <title>Iframe Example</title>
+    <style>
+         /* Styles for the scrollable container and iframes */
+         #iframeContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow-y: scroll;
+        }
+        iframe {
+            object-position: top left;
+            width: 25%;
+            height: 100vh; /* Full viewport height */
+            border: 2px solid red; /* Border for visualization */
+            overflow: auto; /* Enable scrolling */
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="iframeContainer"></div>
+    <iframe id="myIframe"></iframe>
+
+    
+    <script>
+        async function loadSections() {
+            try {
+                // Fetch the content of the HTML file
+                const response = await fetch('The Mirage Emporium.html');
+                const text = await response.text();
+
+                // Create a new DOM parser
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'text/html');
+
+                 // Find all elements with IDs matching the pattern 'Block_#'
+                 const blocks = Array.from(doc.querySelectorAll('[id^="Block_"]'))
+                    .filter(element => /^\d+$/.test(element.id.split('_')[1]))
+                    .map(element => ({
+                        id: element.id,
+                        content: element.outerHTML
+                    }));
+
+                // Get the container for the iframes
+                const container = document.getElementById('iframeContainer');
+
+                // Create and append iframes for each section
+                blocks.forEach(block => {
+                    const iframe = document.createElement('iframe');
+                    container.appendChild(iframe);
+
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(`<!DOCTYPE html>
+                    <html lang="en">
+                    <head>${doc.head.innerHTML}</head>
+                    <body> 
+                                <div class="page">
+                                    <div class="columnWrapper">
+                                        ${block.content}
+                                    </div>
+                                </div>
+                    </body>
+                    </html>`);
+                    iframeDoc.close();
+                    // Set the iframe height based on its content
+                    iframe.onload = function() {
+                            // Calculate the total height of the content elements
+                            let contentHeight = 0;
+
+                            // Include the height of children within .page elements
+                            const pageElements = Array.from(iframe.contentWindow.document.body.getElementsByClassName('page'));
+                            pageElements.forEach(page => {
+                                Array.from(page.children).forEach(child => {
+                                    contentHeight += child.offsetHeight;
+                                });
+                            });
+
+                            iframe.style.height = contentHeight + '30px';
+                            console.log(`${section.id} Height = ${contentHeight}px`);
+                            };
+                });
+            } catch (error) {
+                console.error('Error loading sections:', error);
+            }
+        }
+
+        // Load the sections into iframes when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', loadSections);
+    </script>
+</body>
+</html>
